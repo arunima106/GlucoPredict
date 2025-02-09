@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HbA1c Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #fafafa;
+            padding: 2rem;
+            color: #0a0a0a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #eaeaea;
+            border-radius: 16px;
+            padding: 2.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-title {
+            font-size: 2rem;
+            font-weight: 500;
+            margin-bottom: 2.5rem;
+            letter-spacing: -0.03em;
+            background: linear-gradient(120deg, #000, #333);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        input {
+            flex: 1;
+            padding: 0.875rem 1rem;
+            border: 1.5px solid #eaeaea;
+            border-radius: 12px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s ease;
+            font-weight: 400;
+        }
+
+        input:focus {
+            border-color: #000000;
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            padding: 0.875rem 1.5rem;
+            background: #000000;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            letter-spacing: -0.01em;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .error {
+            background: #fff2f2;
+            border: 1px solid #ffe5e5;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            color: #cc0000;
+            display: none;
+            font-size: 0.925rem;
+            letter-spacing: -0.01em;
+        }
+
+        .progress-container {
+            background: #fafafa;
+            padding: 1.5rem;
+            border-radius: 14px;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: #333;
+            letter-spacing: -0.01em;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #eaeaea;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #000000;
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: #666666;
+            margin-top: 0.75rem;
+            font-weight: 400;
+        }
+
+        .readings-container {
+            margin-top: 2rem;
+        }
+
+        .readings-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: #333;
+            letter-spacing: -0.01em;
+        }
+
+        .readings-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .reading-item {
+            background: #fafafa;
+            padding: 0.75rem;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.925rem;
+            color: #333333;
+            font-weight: 500;
+            transition: transform 0.2s ease;
+        }
+
+        .reading-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .result {
+            background: #f7f7f7;
+            padding: 1.5rem;
+            border-radius: 14px;
+            margin-top: 1.5rem;
+            display: none;
+            border: 1px solid #eaeaea;
+        }
+
+        .result-title {
+            color: #000000;
+            font-size: 1.25rem;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+        }
+
+        .result-text {
+            color: #666666;
+            font-size: 0.925rem;
+            margin-top: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .reset-btn {
+            width: 100%;
+            margin-top: 1.5rem;
+            background: #fafafa;
+            color: #000000;
+            border: 1.5px solid #eaeaea;
+            font-weight: 500;
+        }
+
+        .reset-btn:hover {
+            background: #f2f2f2;
+            border-color: #000000;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+
+            .card-title {
+                font-size: 1.75rem;
+            }
+
+            .readings-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #111111;
+                color: #ffffff;
+            }
+
+            .card {
+                background: #1a1a1a;
+                border-color: #333333;
+            }
+
+            input {
+                background: #222222;
+                border-color: #333333;
+                color: #ffffff;
+            }
+
+            input:focus {
+                border-color: #666666;
+                box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+            }
+
+            .progress-container, .reading-item, .result {
+                background: #222222;
+                border-color: #5b5b5b;
+            }
+
+            .progress-bar {
+                background: #333333;
+            }
+
+            .progress-fill {
+                background: #ffffff;
+            }
+
+            .reset-btn {
+                background: #222222;
+                color: #ffffff;
+                border-color: #333333;
+            }
+
+            .reset-btn:hover {
+                background: #2a2a2a;
+                border-color: #c4c3c3;
+            }
+
+            .card-title {
+                background: linear-gradient(120deg, #fff, #aaa);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+        }
+    </style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #fafafa;
+            padding: 2rem;
+            color: #0a0a0a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #eaeaea;
+            border-radius: 16px;
+            padding: 2.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-title {
+            font-size: 2rem;
+            font-weight: 500;
+            margin-bottom: 2.5rem;
+            letter-spacing: -0.03em;
+            background: linear-gradient(120deg, #000, #333);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        input {
+            flex: 1;
+            padding: 0.875rem 1rem;
+            border: 1.5px solid #eaeaea;
+            border-radius: 12px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s ease;
+            font-weight: 400;
+        }
+
+        input:focus {
+            border-color: #000000;
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            padding: 0.875rem 1.5rem;
+            background: #000000;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            letter-spacing: -0.01em;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .error {
+            background: #fff2f2;
+            border: 1px solid #ffe5e5;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            color: #cc0000;
+            display: none;
+            font-size: 0.925rem;
+            letter-spacing: -0.01em;
+        }
+
+        .login-form {
+            display: block;
+            margin-top: 2rem;
+        }
+
+        .progress-container {
+            background: #fafafa;
+            padding: 1.5rem;
+            border-radius: 14px;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Add other styles... */
+    </style>
+</head>
+<body>
+    <div id="login-container">
+        <div class="container">
+            <div class="card">
+                <h1 class="card-title">Login</h1>
+                <div class="input-group">
+                    <input type="email" id="email" placeholder="Enter your email" />
+                    <input type="password" id="password" placeholder="Enter your password" />
+                </div>
+                <button id="login-btn">Login</button>
+                <div class="error" id="login-error">Invalid credentials, please try again.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="calculator-container" style="display: none;">
+        <!-- Your HbA1c calculator code remains here -->
+        <h1 class="card-title">HbA1c Calculator</h1>
+            
+        <div class="input-group">
+            <input type="number" id="reading-input" placeholder="Enter blood sugar (mg/dL)">
+            <button id="add-btn">Add</button>
+        </div>
+
+        <div class="error" id="error-message">
+            Please enter a valid blood sugar reading between 30-600 mg/dL
+        </div>
+
+        <div class="progress-container">
+            <h3 class="progress-title">Progress</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="days-count">0</span>/90 days
+            </div>
+        </div>
+
+        <div class="readings-container" id="readings-container" style="display: none;">
+            <h3 class="readings-title">Recent Readings</h3>
+            <div class="readings-grid" id="readings-grid"></div>
+        </div>
+
+        <div class="result" id="result">
+            <h3 class="result-title">Estimated HbA1c: <span id="hba1c-value">0</span>%</h3>
+            <p class="result-text">Based on your 3 months of blood sugar readings</p>
+        </div>
+
+        <button class="reset-btn" id="reset-btn" style="display: none;">Reset</button>
+    </div>
+
+    </div>
+
+    <script>
+        // JavaScript remains the same as before
+        const readings = [];
+        const maxDays = 90;
+
+        const readingInput = document.getElementById('reading-input');
+        const addBtn = document.getElementById('add-btn');
+        const errorMessage = document.getElementById('error-message');
+        const progressFill = document.getElementById('progress-fill');
+        const daysCount = document.getElementById('days-count');
+        const readingsContainer = document.getElementById('readings-container');
+        const readingsGrid = document.getElementById('readings-grid');
+        const result = document.getElementById('result');
+        const hba1cValue = document.getElementById('hba1c-value');
+        const resetBtn = document.getElementById('reset-btn');
+
+        function updateProgress() {
+            const progress = (readings.length / maxDays) * 100;
+            progressFill.style.width = `${progress}%`;
+            daysCount.textContent = readings.length;
+        }
+
+        function updateReadings() {
+            if (readings.length > 0) {
+                readingsContainer.style.display = 'block';
+                resetBtn.style.display = 'block';
+                
+                readingsGrid.innerHTML = '';
+                const recentReadings = readings.slice(-10);
+                
+                recentReadings.forEach(reading => {
+                    const readingElement = document.createElement('div');
+                    readingElement.className = 'reading-item';
+                    readingElement.textContent = reading;
+                    readingsGrid.appendChild(readingElement);
+                });
+            } else {
+                readingsContainer.style.display = 'none';
+                resetBtn.style.display = 'none';
+            }
+        }
+
+        function calculateHbA1c() {
+            if (readings.length >= maxDays) {
+                const avgBloodSugar = readings.reduce((sum, val) => sum + val, 0) / readings.length;
+                const hba1c = ((avgBloodSugar + 46.7) / 28.7).toFixed(1);
+                hba1cValue.textContent = hba1c;
+                result.style.display = 'block';
+            }
+        }
+
+        addBtn.addEventListener('click', () => {
+            const value = parseFloat(readingInput.value);
+            
+            if (isNaN(value) || value < 30 || value > 600) {
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            if (readings.length >= maxDays) {
+                errorMessage.textContent = 'Maximum readings (90 days) reached. Please reset to start over.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            errorMessage.style.display = 'none';
+            readings.push(value);
+            readingInput.value = '';
+            
+            updateProgress();
+            updateReadings();
+            calculateHbA1c();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            readings.length = 0;
+            readingInput.value = '';
+            errorMessage.style.display = 'none';
+            result.style.display = 'none';
+            updateProgress();
+            updateReadings();
+        });
+
+        readingInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addBtn.click();
+            }
+        });
+    </script>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyAEAC1rlI9m6qbwY176Na3CM5AuQfu1siM",
+          authDomain: "glucopredict-c1aae.firebaseapp.com",
+          projectId: "glucopredict-c1aae",
+          storageBucket: "glucopredict-c1aae.firebasestorage.app",
+          messagingSenderId: "974704350327",
+          appId: "1:974704350327:web:bd16e688d100ad4ebb2272",
+          measurementId: "G-T8WFSSP6BH"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        const loginContainer = document.getElementById('login-container');
+        const calculatorContainer = document.getElementById('calculator-container');
+        const loginBtn = document.getElementById('login-btn');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginError = document.getElementById('login-error');
+
+        loginBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    loginContainer.style.display = 'none';
+                    calculatorContainer.style.display = 'block';
+                })
+                .catch((error) => {
+                    loginError.style.display = 'block';
+                });
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loginContainer.style.display = 'none';
+                calculatorContainer.style.display = 'block';
+            } else {
+                loginContainer.style.display = 'block';
+                calculatorContainer.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
